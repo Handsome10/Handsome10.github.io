@@ -14,11 +14,11 @@
     <script async defer src="https://buttons.github.io/buttons.js"></script>
     <title>
         
-          xml笔记 - undefined
+          Response笔记 - undefined
         
     </title>
 
-    <link rel="canonical" href="http://yoursite.com/2019/12/17/xml笔记/">
+    <link rel="canonical" href="http://yoursite.com/2019/12/18/Response笔记/">
 
     <!-- Bootstrap Core CSS -->
     
@@ -105,11 +105,11 @@
                         <div class="tags">
                             
                         </div>
-                        <h1>xml笔记</h1>
+                        <h1>Response笔记</h1>
                         <h2 class="subheading"></h2>
                         <span class="meta">
                             Posted by John Doe on
-                            2019-12-17
+                            2019-12-18
                         </span>
                     </div>
                 
@@ -202,199 +202,184 @@
                 col-md-10 col-md-offset-1
                 post-container">
 
-                <h2 id="XML："><a href="#XML：" class="headerlink" title="XML："></a>XML：</h2><pre><code>1. 概念：Extensible Markup Language 可扩展标记语言
-    * 可扩展：标签都是自定义的。 &lt;user&gt;  &lt;student&gt;
+                <h1 id="今日内容"><a href="#今日内容" class="headerlink" title="今日内容"></a>今日内容</h1><pre><code>1. HTTP协议：响应消息
+2. Response对象
+3. ServletContext对象</code></pre><h2 id="HTTP协议："><a href="#HTTP协议：" class="headerlink" title="HTTP协议："></a>HTTP协议：</h2><pre><code>1. 请求消息：客户端发送给服务器端的数据
+    * 数据格式：
+        1. 请求行
+        2. 请求头
+        3. 请求空行
+        4. 请求体
+2. 响应消息：服务器端发送给客户端的数据
+    * 数据格式：
+        1. 响应行
+            1. 组成：协议/版本 响应状态码 状态码描述
+            2. 响应状态码：服务器告诉客户端浏览器本次请求和响应的一个状态。
+                1. 状态码都是3位数字 
+                2. 分类：
+                    1. 1xx：服务器就收客户端消息，但没有接受完成，等待一段时间后，发送1xx多状态码
+                    2. 2xx：成功。代表：200
+                    3. 3xx：重定向。代表：302(重定向)，304(访问缓存)
+                    4. 4xx：客户端错误。
+                        * 代表：
+                            * 404（请求路径没有对应的资源） 
+                            * 405：请求方式没有对应的doXxx方法
+                    5. 5xx：服务器端错误。代表：500(服务器内部出现异常)</code></pre><p>​<br>            2. 响应头：<br>                1. 格式：头名称： 值<br>                2. 常见的响应头：<br>                    1. Content-Type：服务器告诉客户端本次响应体数据格式以及编码格式<br>                    2. Content-disposition：服务器告诉客户端以什么格式打开响应体数据<br>                        * 值：<br>                            * in-line:默认值,在当前页面内打开<br>                            * attachment;filename=xxx：以附件形式打开响应体。文件下载<br>            3. 响应空行<br>            4. 响应体:传输的数据</p>
+<pre><code>* 响应字符串格式
+    HTTP/1.1 200 OK
+    Content-Type: text/html;charset=UTF-8
+    Content-Length: 101
+    Date: Wed, 06 Jun 2018 07:08:42 GMT
 
-    * 功能
-        * 存储数据
-            1. 配置文件
-            2. 在网络中传输
-    * xml与html的区别
-        1. xml标签都是自定义的，html标签是预定义。
-        2. xml的语法严格，html语法松散
-        3. xml是存储数据的，html是展示数据
+    &lt;html&gt;
+      &lt;head&gt;
+        &lt;title&gt;$Title$&lt;/title&gt;
+      &lt;/head&gt;
+      &lt;body&gt;
+      hello , response
+      &lt;/body&gt;
+    &lt;/html&gt;</code></pre><h2 id="Response对象"><a href="#Response对象" class="headerlink" title="Response对象"></a>Response对象</h2><pre><code>* 功能：设置响应消息
+    1. 设置响应行
+        1. 格式：HTTP/1.1 200 ok
+        2. 设置状态码：setStatus(int sc) 
+    2. 设置响应头：setHeader(String name, String value) 
 
-    * w3c:万维网联盟
+    3. 设置响应体：
+        * 使用步骤：
+            1. 获取输出流
+                * 字符输出流：PrintWriter getWriter()
 
-2. 语法：
-    * 基本语法：
-        1. xml文档的后缀名 .xml
-        2. xml第一行必须定义为文档声明
-        3. xml文档中有且仅有一个根标签
-        4. 属性值必须使用引号(单双都可)引起来
-        5. 标签必须正确关闭
-        6. xml标签名称区分大小写
-    * 快速入门：
-        &lt;?xml version=&apos;1.0&apos; ?&gt;
-        &lt;users&gt;
-            &lt;user id=&apos;1&apos;&gt;
-                &lt;name&gt;zhangsan&lt;/name&gt;
-                &lt;age&gt;23&lt;/age&gt;
-                &lt;gender&gt;male&lt;/gender&gt;
-                &lt;br/&gt;
-            &lt;/user&gt;
+                * 字节输出流：ServletOutputStream getOutputStream()
 
-            &lt;user id=&apos;2&apos;&gt;
-                &lt;name&gt;lisi&lt;/name&gt;
-                &lt;age&gt;24&lt;/age&gt;
-                &lt;gender&gt;female&lt;/gender&gt;
-            &lt;/user&gt;
-        &lt;/users&gt;
-
-    * 组成部分：
-        1. 文档声明
-            1. 格式：&lt;?xml 属性列表 ?&gt;
-            2. 属性列表：
-                * version：版本号，必须的属性
-                * encoding：编码方式。告知解析引擎当前文档使用的字符集，默认值：ISO-8859-1
-                * standalone：是否独立
-                    * 取值：
-                        * yes：不依赖其他文件
-                        * no：依赖其他文件
-        2. 指令(了解)：结合css的
-            * &lt;?xml-stylesheet type=&quot;text/css&quot; href=&quot;a.css&quot; ?&gt;
-        3. 标签：标签名称自定义的
-            * 规则：
-                * 名称可以包含字母、数字以及其他的字符 
-                * 名称不能以数字或者标点符号开始 
-                * 名称不能以字母 xml（或者 XML、Xml 等等）开始 
-                * 名称不能包含空格 
-
-        4. 属性：
-            id属性值唯一
-        5. 文本：
-            * CDATA区：在该区域中的数据会被原样展示
-                * 格式：  &lt;![CDATA[ 数据 ]]&gt;</code></pre><p>​<br>        * 约束：规定xml文档的书写规则<br>            * 作为框架的使用者(程序员)：<br>                1. 能够在xml中引入约束文档<br>                2. 能够简单的读懂约束文档</p>
-<pre><code>* 分类：
-    1. DTD:一种简单的约束技术
-    2. Schema:一种复杂的约束技术
+            2. 使用输出流，将数据输出到客户端浏览器
 
 
-* DTD：
-    * 引入dtd文档到xml文档中
-        * 内部dtd：将约束规则定义在xml文档中
-        * 外部dtd：将约束的规则定义在外部的dtd文件中
-            * 本地：&lt;!DOCTYPE 根标签名 SYSTEM &quot;dtd文件的位置&quot;&gt;
-            * 网络：&lt;!DOCTYPE 根标签名 PUBLIC &quot;dtd文件名字&quot; &quot;dtd文件的位置URL&quot;&gt;
+* 案例：
+    1. 完成重定向
+        * 重定向：资源跳转的方式
+        * 代码实现：
+            //1. 设置状态码为302
+            response.setStatus(302);
+            //2.设置响应头location
+            response.setHeader(&quot;location&quot;,&quot;/day15/responseDemo2&quot;);
 
 
-* Schema:
-    * 引入：
-        1.填写xml文档的根元素
-        2.引入xsi前缀.  xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;
-        3.引入xsd文件命名空间.  xsi:schemaLocation=&quot;http://www.itcast.cn/xml  student.xsd&quot;
-        4.为每一个xsd约束声明一个前缀,作为标识  xmlns=&quot;http://www.itcast.cn/xml&quot; 
+            //简单的重定向方法
+            response.sendRedirect(&quot;/day15/responseDemo2&quot;);
 
-    &lt;students   xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;
-        xmlns=&quot;http://www.itcast.cn/xml&quot;
-        xsi:schemaLocation=&quot;http://www.itcast.cn/xml  student.xsd&quot;&gt;</code></pre><p>​    </p>
-<pre><code>3. 解析：操作xml文档，将文档中的数据读取到内存中
-    * 操作xml文档
-        1. 解析(读取)：将文档中的数据读取到内存中
-        2. 写入：将内存中的数据保存到xml文档中。持久化的存储
+        * 重定向的特点:redirect
+            1. 地址栏发生变化
+            2. 重定向可以访问其他站点(服务器)的资源
+            3. 重定向是两次请求。不能使用request对象来共享数据
+        * 转发的特点：forward
+            1. 转发地址栏路径不变
+            2. 转发只能访问当前服务器下的资源
+            3. 转发是一次请求，可以使用request对象来共享数据
 
-    * 解析xml的方式：
-        1. DOM：将标记语言文档一次性加载进内存，在内存中形成一颗dom树
-            * 优点：操作方便，可以对文档进行CRUD的所有操作
-            * 缺点：占内存
-        2. SAX：逐行读取，基于事件驱动的。
-            * 优点：不占内存。
-            * 缺点：只能读取，不能增删改</code></pre><p>​<br>        * xml常见的解析器：<br>            1. JAXP：sun公司提供的解析器，支持dom和sax两种思想<br>            2. DOM4J：一款非常优秀的解析器<br>            3. Jsoup：jsoup 是一款Java 的HTML解析器，可直接解析某个URL地址、HTML文本内容。它提供了一套非常省力的API，可通过DOM，CSS以及类似于jQuery的操作方法来取出和操作数据。<br>            4. PULL：Android操作系统内置的解析器，sax方式的。</p>
-<pre><code>* Jsoup：jsoup 是一款Java 的HTML解析器，可直接解析某个URL地址、HTML文本内容。它提供了一套非常省力的API，可通过DOM，CSS以及类似于jQuery的操作方法来取出和操作数据。
-    * 快速入门：
-        * 步骤：
-            1. 导入jar包
-            2. 获取Document对象
-            3. 获取对应的标签Element对象
-            4. 获取数据
+        * forward 和  redirect 区别
 
-    * 代码：
-         //2.1获取student.xml的path
-        String path = JsoupDemo1.class.getClassLoader().getResource(&quot;student.xml&quot;).getPath();
-        //2.2解析xml文档，加载文档进内存，获取dom树---&gt;Document
-        Document document = Jsoup.parse(new File(path), &quot;utf-8&quot;);
-        //3.获取元素对象 Element
-        Elements elements = document.getElementsByTag(&quot;name&quot;);
+        * 路径写法：
+            1. 路径分类
+                1. 相对路径：通过相对路径不可以确定唯一资源
+                    * 如：./index.html
+                    * 不以/开头，以.开头路径
 
-        System.out.println(elements.size());
-        //3.1获取第一个name的Element对象
-        Element element = elements.get(0);
-        //3.2获取数据
-        String name = element.text();
-        System.out.println(name);
+                    * 规则：找到当前资源和目标资源之间的相对位置关系
+                        * ./：当前目录
+                        * ../:后退一级目录
+                2. 绝对路径：通过绝对路径可以确定唯一资源
+                    * 如：http://localhost/day15/responseDemo2        /day15/responseDemo2
+                    * 以/开头的路径
 
-* 对象的使用：
-    1. Jsoup：工具类，可以解析html或xml文档，返回Document
-        * parse：解析html或xml文档，返回Document
-            * parse(File in, String charsetName)：解析xml或html文件的。
-            * parse(String html)：解析xml或html字符串
-            * parse(URL url, int timeoutMillis)：通过网络路径获取指定的html或xml的文档对象
-    2. Document：文档对象。代表内存中的dom树
-        * 获取Element对象
-            * getElementById(String id)：根据id属性值获取唯一的element对象
-            * getElementsByTag(String tagName)：根据标签名称获取元素对象集合
-            * getElementsByAttribute(String key)：根据属性名称获取元素对象集合
-            * getElementsByAttributeValue(String key, String value)：根据对应的属性名和属性值获取元素对象集合
-    3. Elements：元素Element对象的集合。可以当做 ArrayList&lt;Element&gt;来使用
-    4. Element：元素对象
-        1. 获取子元素对象
-            * getElementById(String id)：根据id属性值获取唯一的element对象
-            * getElementsByTag(String tagName)：根据标签名称获取元素对象集合
-            * getElementsByAttribute(String key)：根据属性名称获取元素对象集合
-            * getElementsByAttributeValue(String key, String value)：根据对应的属性名和属性值获取元素对象集合
+                    * 规则：判断定义的路径是给谁用的？判断请求将来从哪儿发出
+                        * 给客户端浏览器使用：需要加虚拟目录(项目的访问路径)
+                            * 建议虚拟目录动态获取：request.getContextPath()
+                            * &lt;a&gt; , &lt;form&gt; 重定向...
+                        * 给服务器使用：不需要加虚拟目录
+                            * 转发路径</code></pre><p>​<br>​                        </p>
+<pre><code>2. 服务器输出字符数据到浏览器
+    * 步骤：
+        1. 获取字符输出流
+        2. 输出数据
 
-        2. 获取属性值
-            * String attr(String key)：根据属性名称获取属性值
-        3. 获取文本内容
-            * String text():获取文本内容
-            * String html():获取标签体的所有内容(包括字标签的字符串内容)
-    5. Node：节点对象
-        * 是Document和Element的父类</code></pre><p>​<br>        * 快捷查询方式：<br>            1. selector:选择器<br>                * 使用的方法：Elements    select(String cssQuery)<br>                    * 语法：参考Selector类中定义的语法<br>            2. XPath：XPath即为XML路径语言，它是一种用来确定XML（标准通用标记语言的子集）文档中某部分位置的语言<br>                * 使用Jsoup的Xpath需要额外导入jar包。<br>                * 查询w3cshool参考手册，使用xpath的语法完成查询<br>                * 代码：<br>                    //1.获取student.xml的path<br>                    String path = JsoupDemo6.class.getClassLoader().getResource(“student.xml”).getPath();<br>                    //2.获取Document对象<br>                    Document document = Jsoup.parse(new File(path), “utf-8”);</p>
-<pre><code>//3.根据document对象，创建JXDocument对象
-JXDocument jxDocument = new JXDocument(document);
+    * 注意：
+        * 乱码问题：
+            1. PrintWriter pw = response.getWriter();获取的流的默认编码是ISO-8859-1
+            2. 设置该流的默认编码
+            3. 告诉浏览器响应体使用的编码
 
-//4.结合xpath语法查询
-//4.1查询所有student标签
-List&lt;JXNode&gt; jxNodes = jxDocument.selN(&quot;//student&quot;);
-for (JXNode jxNode : jxNodes) {
-    System.out.println(jxNode);
-}
+            //简单的形式，设置编码，是在获取流之前设置
+            response.setContentType(&quot;text/html;charset=utf-8&quot;);
+3. 服务器输出字节数据到浏览器
+    * 步骤：
+        1. 获取字节输出流
+        2. 输出数据
 
-System.out.println(&quot;--------------------&quot;);
+4. 验证码
+    1. 本质：图片
+    2. 目的：防止恶意表单注册</code></pre><h2 id="ServletContext对象："><a href="#ServletContext对象：" class="headerlink" title="ServletContext对象："></a>ServletContext对象：</h2><pre><code>1. 概念：代表整个web应用，可以和程序的容器(服务器)来通信
+2. 获取：
+    1. 通过request对象获取
+        request.getServletContext();
+    2. 通过HttpServlet获取
+        this.getServletContext();
+3. 功能：
+    1. 获取MIME类型：
+        * MIME类型:在互联网通信过程中定义的一种文件数据类型
+            * 格式： 大类型/小类型   text/html        image/jpeg
 
-//4.2查询所有student标签下的name标签
-List&lt;JXNode&gt; jxNodes2 = jxDocument.selN(&quot;//student/name&quot;);
-for (JXNode jxNode : jxNodes2) {
-    System.out.println(jxNode);
-}
+        * 获取：String getMimeType(String file)  
+    2. 域对象：共享数据
+        1. setAttribute(String name,Object value)
+        2. getAttribute(String name)
+        3. removeAttribute(String name)
 
-System.out.println(&quot;--------------------&quot;);
+        * ServletContext对象范围：所有用户所有请求的数据
+    3. 获取文件的真实(服务器)路径
+        1. 方法：String getRealPath(String path)  
+             String b = context.getRealPath(&quot;/b.txt&quot;);//web目录下资源访问
+             System.out.println(b);
 
-//4.3查询student标签下带有id属性的name标签
-List&lt;JXNode&gt; jxNodes3 = jxDocument.selN(&quot;//student/name[@id]&quot;);
-for (JXNode jxNode : jxNodes3) {
-    System.out.println(jxNode);
-}
-System.out.println(&quot;--------------------&quot;);
-//4.4查询student标签下带有id属性的name标签 并且id属性值为itcast
+            String c = context.getRealPath(&quot;/WEB-INF/c.txt&quot;);//WEB-INF目录下的资源访问
+            System.out.println(c);
 
-List&lt;JXNode&gt; jxNodes4 = jxDocument.selN(&quot;//student/name[@id=&apos;itcast&apos;]&quot;);
-for (JXNode jxNode : jxNodes4) {
-    System.out.println(jxNode);
-}</code></pre>
+            String a = context.getRealPath(&quot;/WEB-INF/classes/a.txt&quot;);//src目录下的资源访问
+            System.out.println(a);</code></pre><h2 id="案例："><a href="#案例：" class="headerlink" title="案例："></a>案例：</h2><pre><code>* 文件下载需求：
+    1. 页面显示超链接
+    2. 点击超链接后弹出下载提示框
+    3. 完成图片文件下载
+
+
+* 分析：
+    1. 超链接指向的资源如果能够被浏览器解析，则在浏览器中展示，如果不能解析，则弹出下载提示框。不满足需求
+    2. 任何资源都必须弹出下载提示框
+    3. 使用响应头设置资源的打开方式：
+        * content-disposition:attachment;filename=xxx
+
+
+* 步骤：
+    1. 定义页面，编辑超链接href属性，指向Servlet，传递资源名称filename
+    2. 定义Servlet
+        1. 获取文件名称
+        2. 使用字节输入流加载文件进内存
+        3. 指定response的响应头： content-disposition:attachment;filename=xxx
+        4. 将数据写出到response输出流
+
+
+* 问题：
+    * 中文文件问题
+        * 解决思路：
+            1. 获取客户端使用的浏览器版本信息
+            2. 根据不同的版本信息，设置filename的编码方式不同</code></pre>
                 
 
                 <hr>
                 <!-- Pager -->
                 <ul class="pager">
                     
-                        <li class="previous">
-                            <a href="/2019/12/18/Response笔记/" data-toggle="tooltip" data-placement="top" title="Response笔记">&larr; Previous Post</a>
-                        </li>
-                    
                     
                         <li class="next">
-                            <a href="/2019/12/16/Servlet&HTTP&Request笔记/" data-toggle="tooltip" data-placement="top" title="Servlet&HTTP&Request笔记">Next Post &rarr;</a>
+                            <a href="/2019/12/17/xml笔记/" data-toggle="tooltip" data-placement="top" title="xml笔记">Next Post &rarr;</a>
                         </li>
                     
                 </ul>
