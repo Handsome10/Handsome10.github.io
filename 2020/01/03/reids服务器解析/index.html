@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+  <meta charset="utf-8">
+  
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, minimal-ui">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="Cache-Control" content="no-transform" />
+  <meta http-equiv="Cache-Control" content="no-siteapp" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="format-detection" content="telephone=no,email=no,adress=no">
+  <!-- Color theme for statusbar -->
+  <meta name="theme-color" content="#000000" />
+  <!-- 强制页面在当前窗口以独立页面显示,防止别人在框架里调用页面 -->
+  <meta http-equiv="window-target" content="_top" />
+  
+  
+  <title>reids服务器解析 | Hexo</title>
+  <meta name="description" content="前言常用的SQL数据库的数据都是存在磁盘中的，虽然在数据库底层也做了对应的缓存来减少数据库的IO压力，但由于数据库的缓存一般是针对查询的内容，而且粒度也比较小，一般只有表中的数据没有发生变动的时候，数据库的缓存才会产生作用，但这并不能减少业务逻辑对数据库的增删改操作的IO压力，因此缓存技术应运而生，该技术实现了对热点数据的高速缓存，可以大大缓解后端数据库的压力。 主流应用架构 客户端在对数据库发起">
+<meta property="og:type" content="article">
+<meta property="og:title" content="reids服务器解析">
+<meta property="og:url" content="http:&#x2F;&#x2F;yoursite.com&#x2F;2020&#x2F;01&#x2F;03&#x2F;reids%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%A7%A3%E6%9E%90&#x2F;index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="前言常用的SQL数据库的数据都是存在磁盘中的，虽然在数据库底层也做了对应的缓存来减少数据库的IO压力，但由于数据库的缓存一般是针对查询的内容，而且粒度也比较小，一般只有表中的数据没有发生变动的时候，数据库的缓存才会产生作用，但这并不能减少业务逻辑对数据库的增删改操作的IO压力，因此缓存技术应运而生，该技术实现了对热点数据的高速缓存，可以大大缓解后端数据库的压力。 主流应用架构 客户端在对数据库发起">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https:&#x2F;&#x2F;mmbiz.qpic.cn&#x2F;mmbiz_png&#x2F;JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwXIuQEoHN3IDd9Rf90IjNpj9xtiaKjn8uMNs0LaH1vOmbEWiawjib9YqrA&#x2F;640?wx_fmt&#x3D;png&amp;tp&#x3D;webp&amp;wxfrom&#x3D;5&amp;wx_lazy&#x3D;1&amp;wx_co&#x3D;1">
+<meta property="og:image" content="https:&#x2F;&#x2F;mmbiz.qpic.cn&#x2F;mmbiz_png&#x2F;JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwibwo6qYOdrWBo9hOkadMY3Fwo8cqtDGibQP1EhMK7tQMhZFziaEH1icSYw&#x2F;640?wx_fmt&#x3D;png&amp;tp&#x3D;webp&amp;wxfrom&#x3D;5&amp;wx_lazy&#x3D;1&amp;wx_co&#x3D;1">
+<meta property="og:image" content="https:&#x2F;&#x2F;mmbiz.qpic.cn&#x2F;mmbiz_png&#x2F;JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjw9Vts5Niaj8vMb7eQmiaexWxCv3aHjbtYv6vbKViarsibPgibgN70KdaO2zw&#x2F;640?wx_fmt&#x3D;png&amp;tp&#x3D;webp&amp;wxfrom&#x3D;5&amp;wx_lazy&#x3D;1&amp;wx_co&#x3D;1">
+<meta property="og:image" content="https:&#x2F;&#x2F;mmbiz.qpic.cn&#x2F;mmbiz_png&#x2F;JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwJA9ZOormtzF3RFFAPDuaMnicd0VZI0Gufr8ZCFXibP1dj4kwOVFfCYaQ&#x2F;640?wx_fmt&#x3D;png&amp;tp&#x3D;webp&amp;wxfrom&#x3D;5&amp;wx_lazy&#x3D;1&amp;wx_co&#x3D;1">
+<meta property="og:image" content="https:&#x2F;&#x2F;mmbiz.qpic.cn&#x2F;mmbiz_png&#x2F;JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwZKyrh9NOicaoknSAcyEJQsk3WIll6bnVN6QjWzyMKzD6UvtzEvqUqDg&#x2F;640?wx_fmt&#x3D;png&amp;tp&#x3D;webp&amp;wxfrom&#x3D;5&amp;wx_lazy&#x3D;1&amp;wx_co&#x3D;1">
+<meta property="og:image" content="https:&#x2F;&#x2F;mmbiz.qpic.cn&#x2F;mmbiz_png&#x2F;JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjw8RJhgTmJroKmicBfdB8PjCvsI83r9rPV0m0XBgIaL8D4dKHV6FAjsOg&#x2F;640?wx_fmt&#x3D;png&amp;tp&#x3D;webp&amp;wxfrom&#x3D;5&amp;wx_lazy&#x3D;1&amp;wx_co&#x3D;1">
+<meta property="og:image" content="https:&#x2F;&#x2F;mmbiz.qpic.cn&#x2F;mmbiz_png&#x2F;JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwpTGsvibEroO3YP2gO8fS8ibwXl28XqGUr5dziaSHapJ1jELy7ym2CYAicA&#x2F;640?wx_fmt&#x3D;png&amp;tp&#x3D;webp&amp;wxfrom&#x3D;5&amp;wx_lazy&#x3D;1&amp;wx_co&#x3D;1">
+<meta property="og:image" content="https:&#x2F;&#x2F;mmbiz.qpic.cn&#x2F;mmbiz_png&#x2F;JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwTW3XlkIBpIyEibriaosAXPd3QjESn09MiaeicZYsBxNLic8zkrjedOsq90g&#x2F;640?wx_fmt&#x3D;png&amp;tp&#x3D;webp&amp;wxfrom&#x3D;5&amp;wx_lazy&#x3D;1&amp;wx_co&#x3D;1">
+<meta property="og:image" content="https:&#x2F;&#x2F;mmbiz.qpic.cn&#x2F;mmbiz_png&#x2F;JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwy6s6rVVoXGZEXVGsdJf35Paw1ib1NdZ6j4Wtsa3S4cYia5F2AoLmG2ow&#x2F;640?wx_fmt&#x3D;png&amp;tp&#x3D;webp&amp;wxfrom&#x3D;5&amp;wx_lazy&#x3D;1&amp;wx_co&#x3D;1">
+<meta property="og:image" content="https:&#x2F;&#x2F;mmbiz.qpic.cn&#x2F;mmbiz_png&#x2F;JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwBZUM5iaXpm5ouvYPr9rjYUUicCPWZUCrjaLQYZiaWkGY74OKdOjiaT2eEw&#x2F;640?wx_fmt&#x3D;png&amp;tp&#x3D;webp&amp;wxfrom&#x3D;5&amp;wx_lazy&#x3D;1&amp;wx_co&#x3D;1">
+<meta property="og:image" content="https:&#x2F;&#x2F;mmbiz.qpic.cn&#x2F;mmbiz_png&#x2F;JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjw7bRmic3pTMSjsOZjVgzr1GuWh5IibGNgBXBmD0gNhz3lRziawY8SGAOsw&#x2F;640?wx_fmt&#x3D;png&amp;tp&#x3D;webp&amp;wxfrom&#x3D;5&amp;wx_lazy&#x3D;1&amp;wx_co&#x3D;1">
+<meta property="og:image" content="https:&#x2F;&#x2F;mmbiz.qpic.cn&#x2F;mmbiz_png&#x2F;JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwDzmQqKkoBvSeqcgazlWYy8BAj149DrE3jcicMvp9MqTg3FURIAYwjug&#x2F;640?wx_fmt&#x3D;png&amp;tp&#x3D;webp&amp;wxfrom&#x3D;5&amp;wx_lazy&#x3D;1&amp;wx_co&#x3D;1">
+<meta property="og:image" content="https:&#x2F;&#x2F;mmbiz.qpic.cn&#x2F;mmbiz_png&#x2F;JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwibnJia9AlL9vmjNsbFpfFR04CpibzpMnBQTJalCShTqQul5mzyAXFrYFg&#x2F;640?wx_fmt&#x3D;png&amp;tp&#x3D;webp&amp;wxfrom&#x3D;5&amp;wx_lazy&#x3D;1&amp;wx_co&#x3D;1">
+<meta property="og:image" content="https:&#x2F;&#x2F;mmbiz.qpic.cn&#x2F;mmbiz_png&#x2F;JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwYKLxiaKZ8VC0Gyht0PlvxdfkHHrp6Alickok5dByWShGJwKNB9eiaNpQw&#x2F;640?wx_fmt&#x3D;png&amp;tp&#x3D;webp&amp;wxfrom&#x3D;5&amp;wx_lazy&#x3D;1&amp;wx_co&#x3D;1">
+<meta property="og:image" content="https:&#x2F;&#x2F;mmbiz.qpic.cn&#x2F;mmbiz_png&#x2F;JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwQzh9pIdAPYlnPYkzrgsL5cJOakpFkW73F2ZXQfk1zicQ7UdZWP9NoKA&#x2F;640?wx_fmt&#x3D;png&amp;tp&#x3D;webp&amp;wxfrom&#x3D;5&amp;wx_lazy&#x3D;1&amp;wx_co&#x3D;1">
+<meta property="og:image" content="https:&#x2F;&#x2F;mmbiz.qpic.cn&#x2F;mmbiz_png&#x2F;JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwsQ9iaddqzNWPWPuQXnibeTHW579EiaQotiaQE26fibjSelmgHd3CKqWcFgw&#x2F;640?wx_fmt&#x3D;png&amp;tp&#x3D;webp&amp;wxfrom&#x3D;5&amp;wx_lazy&#x3D;1&amp;wx_co&#x3D;1">
+<meta property="og:image" content="https:&#x2F;&#x2F;mmbiz.qpic.cn&#x2F;mmbiz_png&#x2F;JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwQgoEqozHkj8OiawOuzn1ERlxIoHDvDOSl22Das0NyhRlN1kkjZleibWQ&#x2F;640?wx_fmt&#x3D;png&amp;tp&#x3D;webp&amp;wxfrom&#x3D;5&amp;wx_lazy&#x3D;1&amp;wx_co&#x3D;1">
+<meta property="og:image" content="https:&#x2F;&#x2F;mmbiz.qpic.cn&#x2F;mmbiz_png&#x2F;JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjw9Z3xyxRjNI2HYqKSrzUwTgoIy6jHhEXkwsdJvibLkCszHxQTnFuUibLA&#x2F;640?wx_fmt&#x3D;png&amp;tp&#x3D;webp&amp;wxfrom&#x3D;5&amp;wx_lazy&#x3D;1&amp;wx_co&#x3D;1">
+<meta property="article:published_time" content="2020-01-03T02:05:00.713Z">
+<meta property="article:modified_time" content="2019-12-25T00:53:11.425Z">
+<meta property="article:author" content="John Doe">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https:&#x2F;&#x2F;mmbiz.qpic.cn&#x2F;mmbiz_png&#x2F;JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwXIuQEoHN3IDd9Rf90IjNpj9xtiaKjn8uMNs0LaH1vOmbEWiawjib9YqrA&#x2F;640?wx_fmt&#x3D;png&amp;tp&#x3D;webp&amp;wxfrom&#x3D;5&amp;wx_lazy&#x3D;1&amp;wx_co&#x3D;1">
+  <!-- Canonical links -->
+  <link rel="canonical" href="http://yoursite.com/2020/01/03/reids%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%A7%A3%E6%9E%90/index.html">
+  
+    <link rel="alternate" href="/atom.xml" title="Hexo" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png" type="image/x-icon">
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+  
+  
+  
+<meta name="generator" content="Hexo 4.1.1"></head>
+
+
+<body class="main-center" itemscope itemtype="http://schema.org/WebPage">
+  <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+  <div class="slimContent">
+    <div class="navbar-header">
+      
+      
+      <div class="profile-block text-center">
+        <a id="avatar" href="https://github.com/cofess" target="_blank">
+          <img class="img-circle img-rotate" src="/images/avatar.jpg" width="200" height="200">
+        </a>
+        <h2 id="name" class="hidden-xs hidden-sm">昵称</h2>
+        <h3 id="title" class="hidden-xs hidden-sm hidden-md">Web Developer &amp; Designer</h3>
+        <small id="location" class="text-muted hidden-xs hidden-sm"><i class="icon icon-map-marker"></i> Shenzhen, China</small>
+      </div>
+      
+      <div class="search" id="search-form-wrap">
+
+    <form class="search-form sidebar-form">
+        <div class="input-group">
+            <input type="text" class="search-form-input form-control" placeholder="Search" />
+            <span class="input-group-btn">
+                <button type="submit" class="search-form-submit btn btn-flat" onclick="return false;"><i class="icon icon-search"></i></button>
+            </span>
+        </div>
+    </form>
+    <div class="ins-search">
+  <div class="ins-search-mask"></div>
+  <div class="ins-search-container">
+    <div class="ins-input-wrapper">
+      <input type="text" class="ins-search-input" placeholder="Type something..." x-webkit-speech />
+      <button type="button" class="close ins-close ins-selectable" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
+    </div>
+    <div class="ins-section-wrapper">
+      <div class="ins-section-container"></div>
+    </div>
+  </div>
+</div>
+
+
+</div>
+      <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#main-navbar" aria-controls="main-navbar" aria-expanded="false">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+    </div>
+    <nav id="main-navbar" class="collapse navbar-collapse" itemscope itemtype="http://schema.org/SiteNavigationElement" role="navigation">
+      <ul class="nav navbar-nav main-nav ">
+        
+        
+        <li class="menu-item menu-item-home">
+          <a href="/.">
+            
+            <i class="icon icon-home-fill"></i>
+            
+            <span class="menu-title">Home</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives">
+            
+            <i class="icon icon-archives-fill"></i>
+            
+            <span class="menu-title">Archives</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories">
+            
+            <i class="icon icon-folder"></i>
+            
+            <span class="menu-title">Categories</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags">
+            
+            <i class="icon icon-tags"></i>
+            
+            <span class="menu-title">Tags</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-repository">
+          <a href="/repository">
+            
+            <i class="icon icon-project"></i>
+            
+            <span class="menu-title">Repository</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-books">
+          <a href="/books">
+            
+            <i class="icon icon-book-fill"></i>
+            
+            <span class="menu-title">Books</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-links">
+          <a href="/links">
+            
+            <i class="icon icon-friendship"></i>
+            
+            <span class="menu-title">Links</span>
+          </a>
+        </li>
+        
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about">
+            
+            <i class="icon icon-cup-fill"></i>
+            
+            <span class="menu-title">About</span>
+          </a>
+        </li>
+        
+      </ul>
+      
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/cofess" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="http://weibo.com/cofess" target="_blank" title="Weibo" data-toggle=tooltip data-placement=top><i class="icon icon-weibo"></i></a></li>
+        
+        <li><a href="https://twitter.com/iwebued" target="_blank" title="Twitter" data-toggle=tooltip data-placement=top><i class="icon icon-twitter"></i></a></li>
+        
+        <li><a href="https://www.behance.net/cofess" target="_blank" title="Behance" data-toggle=tooltip data-placement=top><i class="icon icon-behance"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    </nav>
+  </div>
+</header>
+
+  
+    <aside class="sidebar" itemscope itemtype="http://schema.org/WPSideBar">
+  <div class="slimContent">
+    
+      <div class="widget">
+    <h3 class="widget-title">Board</h3>
+    <div class="widget-body">
+        <div id="board">
+            <div class="content">
+                <p>欢迎交流与分享经验!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+    
+      
+
+    
+      
+
+    
+      
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Archive</h3>
+    <div class="widget-body">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2020/01/">January 2020</a><span class="archive-list-count">3</span></li><li class="archive-list-item"><a class="archive-list-link" href="/archives/2019/12/">December 2019</a><span class="archive-list-count">4</span></li></ul>
+    </div>
+  </div>
+
+
+    
+      
+  <div class="widget">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget-body">
+      <ul class="recent-post-list list-unstyled no-thumbnail">
+        
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                
+              </p>
+              <p class="item-title">
+                <a href="/2020/01/03/redis%E9%AB%98%E5%B9%B6%E5%8F%91/" class="title">redis高并发</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-01-03T02:05:00.721Z" itemprop="datePublished">2020-01-03</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                
+              </p>
+              <p class="item-title">
+                <a href="/2020/01/03/redis/" class="title">redis</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-01-03T02:05:00.719Z" itemprop="datePublished">2020-01-03</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                
+              </p>
+              <p class="item-title">
+                <a href="/2020/01/03/reids%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%A7%A3%E6%9E%90/" class="title">reids服务器解析</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2020-01-03T02:05:00.713Z" itemprop="datePublished">2020-01-03</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                
+              </p>
+              <p class="item-title">
+                <a href="/2019/12/19/Cookie&Session%E7%AC%94%E8%AE%B0/" class="title">Cookie&amp;Session笔记</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2019-12-19T12:55:29.522Z" itemprop="datePublished">2019-12-19</time>
+              </p>
+            </div>
+          </li>
+          
+          <li>
+            
+            <div class="item-inner">
+              <p class="item-category">
+                
+              </p>
+              <p class="item-title">
+                <a href="/2019/12/18/Response%E7%AC%94%E8%AE%B0/" class="title">Response笔记</a>
+              </p>
+              <p class="item-date">
+                <time datetime="2019-12-18T08:08:44.708Z" itemprop="datePublished">2019-12-18</time>
+              </p>
+            </div>
+          </li>
+          
+      </ul>
+    </div>
+  </div>
+  
+
+    
+  </div>
+</aside>
+
+  
+  
+<main class="main" role="main">
+  <div class="content">
+  <article id="post-reids服务器解析" class="article article-type-post" itemscope itemtype="http://schema.org/BlogPosting">
+    
+    <div class="article-header">
+      
+        
+  
+    <h1 class="article-title" itemprop="name">
+      reids服务器解析
+    </h1>
+  
+
+      
+      <div class="article-meta">
+        <span class="article-date">
+    <i class="icon icon-calendar-check"></i>
+	<a href="/2020/01/03/reids%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%A7%A3%E6%9E%90/" class="article-date">
+	  <time datetime="2020-01-03T02:05:00.713Z" itemprop="datePublished">2020-01-03</time>
+	</a>
+</span>
+        
+        
+
+        
+
+        <span class="post-comment"><i class="icon icon-comment"></i> <a href="/2020/01/03/reids%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%A7%A3%E6%9E%90/#comments" class="article-comment-link">Comments</a></span>
+        
+      </div>
+    </div>
+    <div class="article-entry marked-body" itemprop="articleBody">
+      
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>常用的SQL数据库的数据都是存在磁盘中的，虽然在数据库底层也做了对应的缓存来减少数据库的IO压力，但由于数据库的缓存一般是针对查询的内容，而且粒度也比较小，一般只有表中的数据没有发生变动的时候，数据库的缓存才会产生作用，但这并不能减少业务逻辑对数据库的增删改操作的IO压力，因此缓存技术应运而生，该技术实现了对热点数据的高速缓存，可以大大缓解后端数据库的压力。</p>
+<h2 id="主流应用架构"><a href="#主流应用架构" class="headerlink" title="主流应用架构"></a>主流应用架构</h2><p><img src="https://mmbiz.qpic.cn/mmbiz_png/JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwXIuQEoHN3IDd9Rf90IjNpj9xtiaKjn8uMNs0LaH1vOmbEWiawjib9YqrA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt="img"></p>
+<p>客户端在对数据库发起请求时，先到缓存层查看是否有所需的数据，如果缓存层存有客户端所需的数据，则直接从缓存层返回，否则进行穿透查询，对数据库进行查询，如果在数据库中查询到该数据，则将该数据回写到缓存层，以便下次客户端再次查询能够直接从缓存层获取数据。</p>
+<h2 id="缓存中间件-–-Memcache和Redis的区别"><a href="#缓存中间件-–-Memcache和Redis的区别" class="headerlink" title="缓存中间件 – Memcache和Redis的区别"></a>缓存中间件 – Memcache和Redis的区别</h2><h3 id="Memcache-代码层类似Hash"><a href="#Memcache-代码层类似Hash" class="headerlink" title="Memcache:代码层类似Hash"></a>Memcache:代码层类似Hash</h3><ol>
+<li>支持简单数据类型</li>
+<li>不支持数据持久化存储</li>
+<li>不支持主从</li>
+<li>不支持分片</li>
+</ol>
+<h3 id="Redis"><a href="#Redis" class="headerlink" title="Redis"></a>Redis</h3><ol>
+<li>数据类型丰富</li>
+<li>支持数据磁盘持久化存储</li>
+<li>支持主从</li>
+<li>支持分片</li>
+</ol>
+<h2 id="为什么Redis能这么快"><a href="#为什么Redis能这么快" class="headerlink" title="为什么Redis能这么快"></a>为什么Redis能这么快</h2><p>Redis的效率很高，官方给出的数据是100000+QPS(query per second),这是因为：</p>
+<ol>
+<li>Redis完全基于内存，绝大部分请求是纯粹的内存操作，执行效率高。</li>
+<li>Redis使用单进程单线程模型的(K,V)数据库，将数据存储在内存中，存取均不会受到硬盘IO的限制，因此其执行速度极快，另外单线程也能处理高并发请求，还可以避免频繁上下文切换和锁的竞争，如果想要多核运行也可以启动多个实例。</li>
+<li>数据结构简单，对数据操作也简单，Redis不使用表，不会强制用户对各个关系进行关联，不会有复杂的关系限制，其存储结构就是键值对，类似于HashMap，HashMap最大的优点就是存取的时间复杂度为O(1)。</li>
+<li>Redis使用多路I/O复用模型，为非阻塞IO（非阻塞IO会另写一篇解释，可以先行百度）。</li>
+</ol>
+<blockquote>
+<p>注：Redis采用的I/O多路复用函数：epoll/kqueue/evport/select</p>
+</blockquote>
+<p>选用策略：</p>
+<ol>
+<li>因地制宜，优先选择时间复杂度为O(1)的I/O多路复用函数作为底层实现。</li>
+<li>由于select要遍历每一个IO，所以其时间复杂度为O(n)，通常被作为保底方案。</li>
+<li>基于react设计模式监听I/O事件。</li>
+</ol>
+<h2 id="Redis的数据类型"><a href="#Redis的数据类型" class="headerlink" title="Redis的数据类型"></a>Redis的数据类型</h2><h3 id="String"><a href="#String" class="headerlink" title="String"></a>String</h3><p>最基本的数据类型，其值最大可存储512M，二进制安全（Redis的String可以包含任何二进制数据，包含jpg对象等）。</p>
+<p><img src="https://mmbiz.qpic.cn/mmbiz_png/JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwibwo6qYOdrWBo9hOkadMY3Fwo8cqtDGibQP1EhMK7tQMhZFziaEH1icSYw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt="img"></p>
+<blockquote>
+<p>注：如果重复写入key相同的键值对，后写入的会将之前写入的覆盖。</p>
+</blockquote>
+<h3 id="Hash"><a href="#Hash" class="headerlink" title="Hash"></a>Hash</h3><p>String元素组成的字典，适用于存储对象。</p>
+<p><img src="https://mmbiz.qpic.cn/mmbiz_png/JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjw9Vts5Niaj8vMb7eQmiaexWxCv3aHjbtYv6vbKViarsibPgibgN70KdaO2zw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt="img"></p>
+<h3 id="List"><a href="#List" class="headerlink" title="List"></a>List</h3><p>列表，按照String元素插入顺序排序。其顺序为后进先出。由于其具有栈的特性，所以可以实现如“最新消息排行榜”这类的功能。</p>
+<p><img src="https://mmbiz.qpic.cn/mmbiz_png/JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwJA9ZOormtzF3RFFAPDuaMnicd0VZI0Gufr8ZCFXibP1dj4kwOVFfCYaQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt="img"></p>
+<h3 id="Set"><a href="#Set" class="headerlink" title="Set"></a>Set</h3><p>String元素组成的无序集合，通过哈希表实现（增删改查时间复杂度为O(1)），不允许重复。</p>
+<p><img src="https://mmbiz.qpic.cn/mmbiz_png/JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwZKyrh9NOicaoknSAcyEJQsk3WIll6bnVN6QjWzyMKzD6UvtzEvqUqDg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt="img"></p>
+<p>另外，当我们使用smembers遍历set中的元素时，其顺序也是不确定的，是通过hash运算过后的结果。Redis还对集合提供了求交集、并集、差集等操作，可以实现如同共同关注，共同好友等功能。</p>
+<h3 id="Sorted-Set"><a href="#Sorted-Set" class="headerlink" title="Sorted Set"></a>Sorted Set</h3><p>通过分数来为集合中的成员进行从小到大的排序。</p>
+<p><img src="https://mmbiz.qpic.cn/mmbiz_png/JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjw8RJhgTmJroKmicBfdB8PjCvsI83r9rPV0m0XBgIaL8D4dKHV6FAjsOg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt="img"></p>
+<h3 id="更高级的Redis类型"><a href="#更高级的Redis类型" class="headerlink" title="更高级的Redis类型"></a>更高级的Redis类型</h3><p>用于计数的HyperLogLog、用于支持存储地理位置信息的Geo。</p>
+<h2 id="从海量Key里查询出某一个固定前缀的Key"><a href="#从海量Key里查询出某一个固定前缀的Key" class="headerlink" title="从海量Key里查询出某一个固定前缀的Key"></a>从海量Key里查询出某一个固定前缀的Key</h2><h3 id="假设redis中有十亿条key，如何从这么多key中找到固定前缀的key？"><a href="#假设redis中有十亿条key，如何从这么多key中找到固定前缀的key？" class="headerlink" title="假设redis中有十亿条key，如何从这么多key中找到固定前缀的key？"></a>假设redis中有十亿条key，如何从这么多key中找到固定前缀的key？</h3><p><strong>方法1：使用KEYS [pattern]：查找所有符合给定模式pattern的key</strong></p>
+<p>使用keys [pattern]指令可以找到所有符合pattern条件的key，但是keys会一次性返回所有符合条件的key，所以会造成redis的卡顿，假设redis此时正在生产环境下，使用该命令就会造成隐患，另外如果一次性返回所有key，对内存的消耗在某些条件下也是巨大的。</p>
+<p>例：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">keys test* &#x2F;&#x2F;返回所有以test为前缀的key</span><br></pre></td></tr></table></figure>
+
+<p><strong>方法2：使用SCAN cursor [MATCH pattern] [COUNT count]</strong></p>
+<ul>
+<li>cursor：游标</li>
+<li>MATCH pattern：查询key的条件</li>
+<li>count：返回的条数</li>
+</ul>
+<p>SCAN是一个基于游标的迭代器，需要基于上一次的游标延续之前的迭代过程。SCAN以0作为游标，开始一次新的迭代，直到命令返回游标0完成一次遍历。此命令并不保证每次执行都返回某个给定数量的元素，甚至会返回0个元素，但只要游标不是0，程序都不会认为SCAN命令结束，但是返回的元素数量大概率符合count参数。另外，SCAN支持模糊查询。</p>
+<p>例：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SCAN 0 MATCH test* COUNT 10 &#x2F;&#x2F;每次返回10条以test为前缀的key</span><br></pre></td></tr></table></figure>
+
+<h2 id="如何通过Redis实现分布式锁"><a href="#如何通过Redis实现分布式锁" class="headerlink" title="如何通过Redis实现分布式锁"></a>如何通过Redis实现分布式锁</h2><h3 id="分布式锁"><a href="#分布式锁" class="headerlink" title="分布式锁"></a>分布式锁</h3><p>分布式锁是控制分布式系统之间共同访问共享资源的一种锁的实现。如果一个系统，或者不同系统的不同主机之间共享某个资源时，往往需要互斥，来排除干扰，满足数据一致性。</p>
+<p>分布式锁需要解决的问题如下：</p>
+<ol>
+<li>互斥性：任意时刻只有一个客户端获取到锁，不能有两个客户端同时获取到锁。</li>
+<li>安全性：锁只能被持有该锁的客户端删除，不能由其它客户端删除。</li>
+<li>死锁：获取锁的客户端因为某些原因而宕机继而无法释放锁，其它客户端再也无法获取锁而导致死锁，此时需要有特殊机制来避免死锁。</li>
+<li>容错：当各个节点，如某个redis节点宕机的时候，客户端仍然能够获取锁或释放锁。</li>
+</ol>
+<h2 id="如何使用redis实现分布式锁"><a href="#如何使用redis实现分布式锁" class="headerlink" title="如何使用redis实现分布式锁"></a>如何使用redis实现分布式锁</h2><h3 id="使用SETNX实现"><a href="#使用SETNX实现" class="headerlink" title="使用SETNX实现"></a>使用SETNX实现</h3><p><strong>SETNX key value:</strong>如果key不存在，则创建并赋值。该命令时间复杂度为O(1)，如果设置成功，则返回1，否则返回0。</p>
+<p><img src="https://mmbiz.qpic.cn/mmbiz_png/JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwpTGsvibEroO3YP2gO8fS8ibwXl28XqGUr5dziaSHapJ1jELy7ym2CYAicA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt="img"></p>
+<p>由于SETNX指令操作简单，且是原子性的，所以初期的时候经常被人们作为分布式锁，我们在应用的时候，可以在某个共享资源区之前先使用SETNX指令，查看是否设置成功，如果设置成功则说明前方没有客户端正在访问该资源，如果设置失败则说明有客户端正在访问该资源，那么当前客户端就需要等待。</p>
+<p>但是如果真的这么做，就会存在一个问题，因为SETNX是长久存在的，所以假设一个客户端正在访问资源，并且上锁，那么当这个客户端结束访问时，该锁依旧存在，后来者也无法成功获取锁，这个该如何解决呢？</p>
+<p>由于SETNX并不支持传入EXPIRE参数，所以我们可以直接使用EXPIRE指令来对特定的key来设置过期时间。</p>
+<p><strong>用法：</strong>EXPIRE key seconds</p>
+<p><strong>程序：</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">RedisService redisService &#x3D; SpringUtils.getBean(RedisService.class);</span><br><span class="line">long status &#x3D; redisService.setnx(key,&quot;1&quot;);</span><br><span class="line">if(status &#x3D;&#x3D; 1)&#123;</span><br><span class="line">  redisService.expire(key,expire);</span><br><span class="line">  doOcuppiedWork();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>这段程序存在的问题：</strong>假设程序运行到第二行出现异常，那么程序来不及设置过期时间就结束了，则key会一直存在，等同于锁一直被持有无法释放。出现此问题的根本原因为：原子性得不到满足。</p>
+<p><strong>解决：</strong>从Redis2.6.12版本开始，我们就可以使用Set操作，将Setnx和expire融合在一起执行，具体做法如下。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SET KEY value [EX seconds] [PX milliseconds] [NX|XX]</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>EX second:设置键的过期时间为second秒。</li>
+<li>PX millisecond:设置键的过期时间为millisecond毫秒。</li>
+<li>NX：只在键不存在时，才对键进行设置操作。</li>
+<li>XX:只在键已经存在时，才对键进行设置操作。</li>
+</ul>
+<blockquote>
+<p>注：SET操作成功完成时才会返回OK，否则返回nil。</p>
+</blockquote>
+<p>有了SET我们就可以在程序中使用类似下面的代码实现分布式锁了：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">RedisService redisService &#x3D; SpringUtils.getBean(RedisService.class);</span><br><span class="line">String result &#x3D; redisService.set(lockKey,requestId,SET_IF_NOT_EXIST,SET_WITH_EXPIRE_TIME,expireTime);</span><br><span class="line">if(&quot;OK.equals(result)&quot;)&#123;</span><br><span class="line">  doOcuppiredWork();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="如何实现异步队列"><a href="#如何实现异步队列" class="headerlink" title="如何实现异步队列"></a>如何实现异步队列</h2><h3 id="使用Redis中的List作为队列"><a href="#使用Redis中的List作为队列" class="headerlink" title="使用Redis中的List作为队列"></a>使用Redis中的List作为队列</h3><p>使用上文所说的Redis的数据结构中的List作为队列 Rpush生产消息，LPOP消费消息。</p>
+<p><img src="https://mmbiz.qpic.cn/mmbiz_png/JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwTW3XlkIBpIyEibriaosAXPd3QjESn09MiaeicZYsBxNLic8zkrjedOsq90g/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt="img"></p>
+<p>此时我们可以看到，该队列是使用rpush生产队列，使用lpop消费队列。在这个生产者-消费者队列里，当lpop没有消息时，证明该队列中没有元素，并且生产者还没有来得及生产新的数据。</p>
+<p><strong>缺点：</strong>lpop不会等待队列中有值之后再消费，而是直接进行消费。</p>
+<p><strong>弥补：</strong>可以通过在应用层引入Sleep机制去调用LPOP重试。</p>
+<h3 id="使用BLPOP-key-key…-timeout"><a href="#使用BLPOP-key-key…-timeout" class="headerlink" title="使用BLPOP key [key…] timeout"></a>使用BLPOP key [key…] timeout</h3><p>BLPOP key [key …] timeout:阻塞直到队列有消息或者超时。</p>
+<p><img src="https://mmbiz.qpic.cn/mmbiz_png/JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwy6s6rVVoXGZEXVGsdJf35Paw1ib1NdZ6j4Wtsa3S4cYia5F2AoLmG2ow/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt="img"></p>
+<p><img src="https://mmbiz.qpic.cn/mmbiz_png/JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwBZUM5iaXpm5ouvYPr9rjYUUicCPWZUCrjaLQYZiaWkGY74OKdOjiaT2eEw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt="img"></p>
+<p><img src="https://mmbiz.qpic.cn/mmbiz_png/JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjw7bRmic3pTMSjsOZjVgzr1GuWh5IibGNgBXBmD0gNhz3lRziawY8SGAOsw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt="img"></p>
+<p><strong>缺点：</strong>按照此种方法，我们生产后的数据只能提供给各个单一消费者消费</p>
+<p><strong>能否实现生产一次就能让多个消费者消费呢？</strong></p>
+<h3 id="pub-sub：主题订阅者模式"><a href="#pub-sub：主题订阅者模式" class="headerlink" title="pub/sub：主题订阅者模式"></a>pub/sub：主题订阅者模式</h3><p>发送者（pub）发送消息，订阅者（sub）接收消息。订阅者可以订阅任意数量的频道</p>
+<p><img src="https://mmbiz.qpic.cn/mmbiz_png/JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwDzmQqKkoBvSeqcgazlWYy8BAj149DrE3jcicMvp9MqTg3FURIAYwjug/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt="img"></p>
+<p><strong>pub/sub模式的缺点：</strong></p>
+<p>消息的发布是无状态的，无法保证可达。对于发布者来说，消息是“即发即失”的，此时如果某个消费者在生产者发布消息时下线，重新上线之后，是无法接收该消息的，要解决该问题需要使用专业的消息队列，如kafka…此处不再赘述。</p>
+<h2 id="Redis持久化"><a href="#Redis持久化" class="headerlink" title="Redis持久化"></a>Redis持久化</h2><h3 id="什么是持久化"><a href="#什么是持久化" class="headerlink" title="什么是持久化"></a>什么是持久化</h3><p>持久化，即将数据持久存储，而不因断电或其它各种复杂外部环境影响数据的完整性。由于Redis将数据存储在内存而不是磁盘中，所以内存一旦断电，Redis中存储的数据也随即消失，这往往是用户不期望的，所以Redis有持久化机制来保证数据的安全性。</p>
+<h3 id="Redis如何做持久化"><a href="#Redis如何做持久化" class="headerlink" title="Redis如何做持久化"></a>Redis如何做持久化</h3><p>Redis目前有两种持久化方式，即RDB和AOF，RDB是通过保存某个时间点的全量数据快照实现数据的持久化，当恢复数据时，直接通过rdb文件中的快照，将数据恢复。</p>
+<h3 id="RDB-快照-持久化-保存某个时间点的全量数据快照"><a href="#RDB-快照-持久化-保存某个时间点的全量数据快照" class="headerlink" title="RDB(快照)持久化:保存某个时间点的全量数据快照"></a>RDB(快照)持久化:保存某个时间点的全量数据快照</h3><p>RDB持久化会在某个特定的间隔保存那个时间点的全量数据的快照。</p>
+<p><strong>RDB配置文件:</strong></p>
+<p>redis.conf:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">save 900 1 #在900s内如果有1条数据被写入，则产生一次快照。</span><br><span class="line">save 300 10 #在300s内如果有10条数据被写入，则产生一次快照</span><br><span class="line">save 60 10000 #在60s内如果有10000条数据被写入，则产生一次快照</span><br><span class="line">stop-writes-on-bgsave-error yes </span><br><span class="line">#stop-writes-on-bgsave-error ：</span><br><span class="line">#如果为yes则表示，当备份进程出错的时候，</span><br><span class="line">#主进程就停止进行接受新的写入操作，这样是为了保护持久化的数据一致性的问题。</span><br></pre></td></tr></table></figure>
+
+<h4 id="RDB的创建与载入"><a href="#RDB的创建与载入" class="headerlink" title="RDB的创建与载入"></a>RDB的创建与载入</h4><p><strong>SAVE:</strong>阻塞Redis的服务器进程，直到RDB文件被创建完毕。SAVE命令很少被使用，因为其会阻塞主线程来保证快照的写入，由于Redis是使用一个主线程来接收所有客户端请求，这样会阻塞所有客户端请求。</p>
+<p><strong>BGSAVE:</strong>该指令会Fork出一个子进程来创建RDB文件，不阻塞服务器进程，子进程接收请求并创建RDB快照，父进程继续接收客户端的请求。子进程在完成文件的创建时会向父进程发送信号，父进程在接收客户端请求的过程中，在一定的时间间隔通过轮询来接收子进程的信号。我们也可以通过使用lastsave指令来查看bgsave是否执行成功，lastsave可以返回最后一次执行成功bgsave的时间。</p>
+<h4 id="自动化触发RDB持久化的方式"><a href="#自动化触发RDB持久化的方式" class="headerlink" title="自动化触发RDB持久化的方式"></a>自动化触发RDB持久化的方式</h4><ol>
+<li>根据redis.conf配置里的SAVE m n 定时触发（实际上使用的是BGSAVE）</li>
+<li>主从复制时，主节点自动触发。</li>
+<li>执行Debug Reload</li>
+<li>执行Shutdown且没有开启AOF持久化。</li>
+</ol>
+<h4 id="BGSAVE的原理"><a href="#BGSAVE的原理" class="headerlink" title="BGSAVE的原理"></a>BGSAVE的原理</h4><p>启动：</p>
+<p>1.检查是否存在子进程正在执行AOF或者RDB的持久化任务。如果有则返回false。</p>
+<p>2.调用Redis源码中的rdbSaveBackground方法，方法中执行fork()产生子进程执行rdb操作。</p>
+<p><img src="https://mmbiz.qpic.cn/mmbiz_png/JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwibnJia9AlL9vmjNsbFpfFR04CpibzpMnBQTJalCShTqQul5mzyAXFrYFg/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt="img"></p>
+<p>3.关于fork()中的Copy-On-Write</p>
+<p>fork()在linux中创建子进程采用Copy-On-Write（写时拷贝技术），即<strong>如果有多个调用者同时要求相同资源（如内存或磁盘上的数据存储），他们会共同获取相同的指针指向相同的资源，直到某个调用者试图修改资源的内容时，系统才会真正复制一份专用副本给调用者，而其它调用者所见到的最初的资源仍然保持不变。</strong></p>
+<h4 id="RDB持久化方式的缺点"><a href="#RDB持久化方式的缺点" class="headerlink" title="RDB持久化方式的缺点"></a>RDB持久化方式的缺点</h4><ol>
+<li>内存数据全量同步，数据量大的状况下，会由于I/O而严重影响性能。</li>
+<li>可能会因为Redis宕机而丢失从当前至最近一次快照期间的数据。</li>
+</ol>
+<h3 id="AOF-Append-Only-File-持久化-保存写状态"><a href="#AOF-Append-Only-File-持久化-保存写状态" class="headerlink" title="AOF(Append-Only-File)持久化:保存写状态"></a>AOF(Append-Only-File)持久化:保存写状态</h3><p>AOF持久化是通过保存Redis的写状态来记录数据库的。相对RDB来说，RDB持久化是通过备份数据库的状态来记录数据库，而AOF持久化是备份数据库接收到的指令。</p>
+<ol>
+<li>AOF记录除了查询以外的所有变更数据库状态的指令。</li>
+<li>以增量的形式追加保存到AOF文件中。</li>
+</ol>
+<h3 id="开启AOF持久化"><a href="#开启AOF持久化" class="headerlink" title="开启AOF持久化"></a>开启AOF持久化</h3><p>1.打开redis.conf配置文件,将appendonly属性改为yes。</p>
+<p>2.修改appendfsync属性，该属性可以接收三种参数，分别是always,everysec,no,always表示总是即时将缓冲区内容写入AOF文件当中，everysec表示每隔一秒将缓冲区内容写入AOF文件，no表示将写入文件操作交由操作系统决定，一般来说，操作系统考虑效率问题，会等待缓冲区被填满再将缓冲区数据写入AOF文件中。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">appendonly yes</span><br><span class="line"></span><br><span class="line">#appendsync always</span><br><span class="line">appendfsync everysec</span><br><span class="line"># appendfsync no</span><br></pre></td></tr></table></figure>
+
+<h3 id="日志重写解决AOF文件不断增大的问题"><a href="#日志重写解决AOF文件不断增大的问题" class="headerlink" title="日志重写解决AOF文件不断增大的问题"></a>日志重写解决AOF文件不断增大的问题</h3><p>随着写操作的不断增加，AOF文件会越来越大。假设递增一个计数器100次，如果使用RDB持久化方式，我们只要保存最终结果100即可，而AOF持久化方式需要记录下这100次递增操作的指令，而事实上要恢复这条记录，只需要执行一条命令就行，所以那一百条命令实际可以精简为一条。</p>
+<p>Redis支持这样的功能，在不中断前台服务的情况下，可以重写AOF文件，同样使用到了COW（写时拷贝）。重写过程如下：</p>
+<ol>
+<li>调用fork()，创建一个子进程。</li>
+<li>子进程把新的AOF写到一个临时文件里，不依赖原来的AOF文件。</li>
+<li>主进程持续将新的变动同时写到内存和原来的AOF里。</li>
+<li>主进程获取子进程重写AOF的完成信号，往新AOF同步增量变动。</li>
+<li>使用新的AOF文件替换掉旧的AOF文件。</li>
+</ol>
+<h3 id="AOF和RDB的优缺点"><a href="#AOF和RDB的优缺点" class="headerlink" title="AOF和RDB的优缺点"></a>AOF和RDB的优缺点</h3><ul>
+<li>RDB优点：全量数据快照，文件小，恢复快。</li>
+<li>RDB缺点：无法保存最近一次快照之后的数据。</li>
+<li>AOF优点：可读性高，适合保存增量数据，数据不易丢失。</li>
+<li>AOF缺点：文件体积大，恢复时间长。</li>
+</ul>
+<h3 id="RDB-AOF混合持久化方式"><a href="#RDB-AOF混合持久化方式" class="headerlink" title="RDB-AOF混合持久化方式"></a>RDB-AOF混合持久化方式</h3><p>redis4.0之后推出了此种持久化方式，RDB作为全量备份，AOF作为增量备份，并且将此种方式作为默认方式使用。</p>
+<p>在上述两种方式中，RDB方式是将全量数据写入RDB文件，这样写入的特点是文件小，恢复快，但无法保存最近一次快照之后的数据，AOF则将redis指令存入文件中，这样又会造成文件体积大，恢复时间长等弱点。</p>
+<p>在RDB-AOF方式下，持久化策略首先将缓存中数据以RDB方式全量写入文件，再将写入后新增的数据以AOF的方式追加在RDB数据的后面，在下一次做RDB持久化的时候将AOF的数据重新以RDB的形式写入文件。</p>
+<p>这种方式既可以提高读写和恢复效率，也可以减少文件大小，同时可以保证数据的完整性。在此种策略的持久化过程中，子进程会通过管道从父进程读取增量数据，在以RDB格式保存全量数据时，也会通过管道读取数据，同时不会造成管道阻塞。可以说，在此种方式下的持久化文件，前半段是RDB格式的全量数据，后半段是AOF格式的增量数据。此种方式是目前较为推荐的一种持久化方式。</p>
+<h2 id="Redis数据的恢复"><a href="#Redis数据的恢复" class="headerlink" title="Redis数据的恢复"></a>Redis数据的恢复</h2><h3 id="RDB和AOF文件共存情况下的恢复流程"><a href="#RDB和AOF文件共存情况下的恢复流程" class="headerlink" title="RDB和AOF文件共存情况下的恢复流程"></a>RDB和AOF文件共存情况下的恢复流程</h3><p><img src="https://mmbiz.qpic.cn/mmbiz_png/JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwYKLxiaKZ8VC0Gyht0PlvxdfkHHrp6Alickok5dByWShGJwKNB9eiaNpQw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt="img"></p>
+<p>从图可知，Redis启动时会先检查AOF是否存在，如果AOF存在则直接加载AOF，如果不存在AOF，则直接加载RDB文件。</p>
+<h2 id="Pineline"><a href="#Pineline" class="headerlink" title="Pineline"></a>Pineline</h2><p>Pipeline和Linux的管道类似，它可以让Redis批量执行指令。</p>
+<p>Redis基于请求/响应模型，单个请求处理需要一一应答。如果需要同时执行大量命令，则每条命令都需要等待上一条命令执行完毕后才能继续执行，这中间不仅仅多了RTT,还多次使用了系统IO。Pipeline由于可以批量执行指令，所以可以节省多次IO和请求响应往返的时间。但是如果指令之间存在依赖关系，则建议分批发送指令。</p>
+<h2 id="Redis的同步机制"><a href="#Redis的同步机制" class="headerlink" title="Redis的同步机制"></a>Redis的同步机制</h2><h3 id="主从同步原理"><a href="#主从同步原理" class="headerlink" title="主从同步原理"></a>主从同步原理</h3><p>Redis一般是使用一个Master节点来进行写操作，而若干个Slave节点进行读操作，Master和Slave分别代表了一个个不同的RedisServer实例，另外定期的数据备份操作也是单独选择一个Slave去完成，这样可以最大程度发挥Redis的性能，为的是保证数据的弱一致性和最终一致性。另外，Master和Slave的数据不是一定要即时同步的，但是在一段时间后Master和Slave的数据是趋于同步的，这就是最终一致性。</p>
+<p><img src="https://mmbiz.qpic.cn/mmbiz_png/JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwQzh9pIdAPYlnPYkzrgsL5cJOakpFkW73F2ZXQfk1zicQ7UdZWP9NoKA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt="img"></p>
+<h4 id="全同步过程"><a href="#全同步过程" class="headerlink" title="全同步过程"></a>全同步过程</h4><ol>
+<li>Slave发送sync命令到Master。</li>
+<li>Master启动一个后台进程，将Redis中的数据快照保存到文件中。</li>
+<li>Master将保存数据快照期间接收到的写命令缓存起来。</li>
+<li>Master完成写文件操作后，将该文件发送给Slave。</li>
+<li>使用新的AOF文件替换掉旧的AOF文件。</li>
+<li>Master将这期间收集的增量写命令发送给Slave端。</li>
+</ol>
+<h4 id="增量同步过程"><a href="#增量同步过程" class="headerlink" title="增量同步过程"></a>增量同步过程</h4><ol>
+<li>Master接收到用户的操作指令，判断是否需要传播到Slave。</li>
+<li>将操作记录追加到AOF文件。</li>
+<li>将操作传播到其它Slave：1.对齐主从库；2.往响应缓存写入指令。</li>
+<li>将缓存中的数据发送给Slave。</li>
+</ol>
+<h3 id="Redis-Sentinel（哨兵）"><a href="#Redis-Sentinel（哨兵）" class="headerlink" title="Redis Sentinel（哨兵）"></a>Redis Sentinel（哨兵）</h3><p>主从模式弊端：当Master宕机后，Redis集群将不能对外提供写入操作。Redis Sentinel可解决这一问题。</p>
+<p>解决主从同步Master宕机后的主从切换问题：</p>
+<ol>
+<li>监控：检查主从服务器是否运行正常。</li>
+<li>提醒：通过API向管理员或者其它应用程序发送故障通知。</li>
+<li>自动故障迁移：主从切换（在Master宕机后，将其中一个Slave转为Master，其他的Slave从该节点同步数据）。</li>
+</ol>
+<h2 id="Redis集群"><a href="#Redis集群" class="headerlink" title="Redis集群"></a>Redis集群</h2><h3 id="原理：如何从海量数据里快速找到所需？"><a href="#原理：如何从海量数据里快速找到所需？" class="headerlink" title="原理：如何从海量数据里快速找到所需？"></a>原理：如何从海量数据里快速找到所需？</h3><h4 id="分片"><a href="#分片" class="headerlink" title="分片"></a>分片</h4><p>按照某种规则去划分数据，分散存储在多个节点上。通过将数据分到多个Redis服务器上，来减轻单个Redis服务器的压力。</p>
+<h4 id="一致性Hash算法"><a href="#一致性Hash算法" class="headerlink" title="一致性Hash算法"></a>一致性Hash算法</h4><p>既然要将数据进行分片，那么通常的做法就是获取节点的Hash值，然后根据节点数求模，但这样的方法有明显的弊端，当Redis节点数需要动态增加或减少的时候，会造成大量的Key无法被命中。所以Redis中引入了一致性Hash算法。</p>
+<p>该算法对2^32 取模，将Hash值空间组成虚拟的圆环，整个圆环按顺时针方向组织，每个节点依次为0、1、2…2^32-1，之后将每个服务器进行Hash运算，确定服务器在这个Hash环上的地址，确定了服务器地址后，对数据使用同样的Hash算法，将数据定位到特定的Redis服务器上。如果定位到的地方没有Redis服务器实例，则继续顺时针寻找，找到的第一台服务器即该数据最终的服务器位置。</p>
+<p><img src="https://mmbiz.qpic.cn/mmbiz_png/JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwsQ9iaddqzNWPWPuQXnibeTHW579EiaQotiaQE26fibjSelmgHd3CKqWcFgw/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt="img"></p>
+<h3 id="Hash环的数据倾斜问题"><a href="#Hash环的数据倾斜问题" class="headerlink" title="Hash环的数据倾斜问题"></a>Hash环的数据倾斜问题</h3><p>Hash环在服务器节点很少的时候，容易遇到服务器节点不均匀的问题，这会造成数据倾斜，数据倾斜指的是被缓存的对象大部分集中在Redis集群的其中一台或几台服务器上。</p>
+<p><img src="https://mmbiz.qpic.cn/mmbiz_png/JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjwQgoEqozHkj8OiawOuzn1ERlxIoHDvDOSl22Das0NyhRlN1kkjZleibWQ/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt="img"></p>
+<p>如上图，一致性Hash算法运算后的数据大部分被存放在A节点上，而B节点只存放了少量的数据，久而久之A节点将被撑爆。</p>
+<p>针对这一问题，可以引入虚拟节点解决。简单地说，就是为每一个服务器节点计算多个Hash，每个计算结果位置都放置一个此服务器节点，称为虚拟节点，可以在服务器IP或者主机名后放置一个编号实现。</p>
+<p><img src="https://mmbiz.qpic.cn/mmbiz_png/JfTPiahTHJhoI8AZ5iaIZIhbVs0wSkASjw9Z3xyxRjNI2HYqKSrzUwTgoIy6jHhEXkwsdJvibLkCszHxQTnFuUibLA/640?wx_fmt=png&tp=webp&wxfrom=5&wx_lazy=1&wx_co=1" alt="img"></p>
+<p>例如上图：将NodeA和NodeB两个节点分为Node A#1-A#3 NodeB#1-B#3。</p>
+<h2 id="结语"><a href="#结语" class="headerlink" title="结语"></a>结语</h2><p>这篇准(tou)备(lan)了相当久的时间，因为有些东西总感觉自己拿不准不敢往上写，差点自闭，就算现在发出来了也感觉有很多地方是需要改动的。如果有同学觉得哪里写的不对劲的，评论区留言…嗯，我不要你觉得，我要我觉得。</p>
+
+      
+    </div>
+    <div class="article-footer">
+      <blockquote class="mt-2x">
+  <ul class="post-copyright list-unstyled">
+    
+    <li class="post-copyright-link hidden-xs">
+      <strong>本文链接：</strong>
+      <a href="http://yoursite.com/2020/01/03/reids%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%A7%A3%E6%9E%90/" title="reids服务器解析" target="_blank" rel="external">http://yoursite.com/2020/01/03/reids%E6%9C%8D%E5%8A%A1%E5%99%A8%E8%A7%A3%E6%9E%90/</a>
+    </li>
+    
+    <li class="post-copyright-license">
+      <strong>版权声明： </strong> 本博客所有文章除特别声明外，均采用 <a href="http://creativecommons.org/licenses/by/4.0/deed.zh" target="_blank" rel="external">CC BY 4.0 CN协议</a> 许可协议。转载请注明出处！
+    </li>
+  </ul>
+</blockquote>
+
+
+<div class="panel panel-default panel-badger">
+  <div class="panel-body">
+    <figure class="media">
+      <div class="media-left">
+        <a href="https://github.com/cofess" target="_blank" class="img-burn thumb-sm visible-lg">
+          <img src="/images/avatar.jpg" class="img-rounded w-full" alt="">
+        </a>
+      </div>
+      <div class="media-body">
+        <h3 class="media-heading"><a href="https://github.com/cofess" target="_blank"><span class="text-dark">昵称</span><small class="ml-1x">Web Developer &amp; Designer</small></a></h3>
+        <div>个人简介。</div>
+      </div>
+    </figure>
+  </div>
+</div>
+
+
+    </div>
+  </article>
+  
+    
+  <section id="comments">
+  	
+      <div id="vcomments"></div>
+    
+  </section>
+
+
+  
+</div>
+
+  <nav class="bar bar-footer clearfix" data-stick-bottom>
+  <div class="bar-inner">
+  
+  <ul class="pager pull-left">
+    
+    <li class="prev">
+      <a href="/2020/01/03/redis/" title="redis"><i class="icon icon-angle-left" aria-hidden="true"></i><span>&nbsp;&nbsp;Newer</span></a>
+    </li>
+    
+    
+    <li class="next">
+      <a href="/2019/12/19/Cookie&Session%E7%AC%94%E8%AE%B0/" title="Cookie&amp;Session笔记"><span>Older&nbsp;&nbsp;</span><i class="icon icon-angle-right" aria-hidden="true"></i></a>
+    </li>
+    
+    
+  </ul>
+  
+  
+  <!-- Button trigger modal -->
+  <button type="button" class="btn btn-fancy btn-donate pop-onhover bg-gradient-warning" data-toggle="modal" data-target="#donateModal"><span>$</span></button>
+  <!-- <div class="wave-icon wave-icon-danger btn-donate" data-toggle="modal" data-target="#donateModal">
+    <div class="wave-circle"><span class="icon"><i class="icon icon-bill"></i></span></div>
+  </div> -->
+  
+  
+  <div class="bar-right">
+    
+    <div class="share-component" data-sites="weibo,qq,wechat,facebook,twitter" data-mobile-sites="weibo,qq,qzone"></div>
+    
+  </div>
+  </div>
+</nav>
+  
+<!-- Modal -->
+<div class="modal modal-center modal-small modal-xs-full fade" id="donateModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content donate">
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+      <div class="modal-body">
+        <div class="donate-box">
+          <div class="donate-head">
+            <p>Maybe you could buy me a cup of coffee.</p>
+          </div>
+          <div class="tab-content">
+            <div role="tabpanel" class="tab-pane fade active in" id="alipay">
+              <div class="donate-payimg">
+                <img src="/images/donate/alipayimg.png" alt="Scan Qrcode" title="Scan" />
+              </div>
+              <p class="text-muted mv">Scan this qrcode</p>
+              <p class="text-grey">Open alipay app scan this qrcode, buy me a coffee!</p>
+            </div>
+            <div role="tabpanel" class="tab-pane fade" id="wechatpay">
+              <div class="donate-payimg">
+                <img src="/images/donate/wechatpayimg.png" alt="Scan Qrcode" title="Scan" />
+              </div>
+              <p class="text-muted mv">Scan this qrcode</p>
+              <p class="text-grey">Open wechat app scan this qrcode, buy me a coffee!</p>
+            </div>
+          </div>
+          <div class="donate-footer">
+            <ul class="nav nav-tabs nav-justified" role="tablist">
+              <li role="presentation" class="active">
+                <a href="#alipay" id="alipay-tab" role="tab" data-toggle="tab" aria-controls="alipay" aria-expanded="true"><i class="icon icon-alipay"></i> alipay</a>
+              </li>
+              <li role="presentation" class="">
+                <a href="#wechatpay" role="tab" id="wechatpay-tab" data-toggle="tab" aria-controls="wechatpay" aria-expanded="false"><i class="icon icon-wepay"></i> wechat payment</a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+</main>
+
+  <footer class="footer" itemscope itemtype="http://schema.org/WPFooter">
+	
+	
+    <ul class="social-links">
+    	
+        <li><a href="https://github.com/cofess" target="_blank" title="Github" data-toggle=tooltip data-placement=top><i class="icon icon-github"></i></a></li>
+        
+        <li><a href="http://weibo.com/cofess" target="_blank" title="Weibo" data-toggle=tooltip data-placement=top><i class="icon icon-weibo"></i></a></li>
+        
+        <li><a href="https://twitter.com/iwebued" target="_blank" title="Twitter" data-toggle=tooltip data-placement=top><i class="icon icon-twitter"></i></a></li>
+        
+        <li><a href="https://www.behance.net/cofess" target="_blank" title="Behance" data-toggle=tooltip data-placement=top><i class="icon icon-behance"></i></a></li>
+        
+        <li><a href="/atom.xml" target="_blank" title="Rss" data-toggle=tooltip data-placement=top><i class="icon icon-rss"></i></a></li>
+        
+    </ul>
+
+    <div class="copyright">
+    	
+        <div class="publishby">
+        	Theme by <a href="https://github.com/cofess" target="_blank"> cofess </a>base on <a href="https://github.com/cofess/hexo-theme-pure" target="_blank">pure</a>.
+        </div>
+    </div>
+</footer>
+  <script src="//cdn.jsdelivr.net/npm/jquery@1.12.4/dist/jquery.min.js"></script>
+<script>
+window.jQuery || document.write('<script src="js/jquery.min.js"><\/script>')
+</script>
+
+<script src="/js/plugin.min.js"></script>
+
+
+<script src="/js/application.js"></script>
+
+
+    <script>
+(function (window) {
+    var INSIGHT_CONFIG = {
+        TRANSLATION: {
+            POSTS: 'Posts',
+            PAGES: 'Pages',
+            CATEGORIES: 'Categories',
+            TAGS: 'Tags',
+            UNTITLED: '(Untitled)',
+        },
+        ROOT_URL: '/',
+        CONTENT_URL: '/content.json',
+    };
+    window.INSIGHT_CONFIG = INSIGHT_CONFIG;
+})(window);
+</script>
+
+<script src="/js/insight.js"></script>
+
+
+
+
+
+
+   
+
+
+
+
+   
+    
+  <script src="//cdn1.lncld.net/static/js/3.0.4/av-min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/valine"></script>
+  <script type="text/javascript">
+  var GUEST = ['nick', 'mail', 'link'];
+  var meta = 'nick,mail,link';
+  meta = meta.split(',').filter(function(item) {
+    return GUEST.indexOf(item) > -1;
+  });
+  new Valine({
+    el: '#vcomments',
+    verify: false,
+    notify: false,
+    appId: '',
+    appKey: '',
+    placeholder: 'Just go go',
+    avatar: 'mm',
+    meta: meta,
+    pageSize: '10' || 10,
+    visitor: false
+  });
+  </script>
+
+     
+
+
+
+
+
+
+
+</body>
+</html>
